@@ -192,7 +192,7 @@ void PlyFile::write_property_ascii(PlyProperty::Type t, std::ostream & os, uint8
     srcOffset += PropertyTable[t].stride;
 }
 
-void PlyFile::write_property_binary(PlyProperty::Type t, std::ostream & os, uint8_t * src, size_t & srcOffset)
+void PlyFile::write_property_binary(const PlyProperty::Type & t, std::ostream & os, uint8_t * src, size_t & srcOffset)
 {
     os.write((char *)src, PropertyTable[t].stride);
     srcOffset += PropertyTable[t].stride;
@@ -214,13 +214,39 @@ void PlyFile::write_binary_internal(std::ostream & os)
     isBinary = true;
     write_header(os);
 
-    for (auto & e : elements)
+	DataCursor * cursor;// = userDataTable[make_key("vertex", "x")];
+
+	std::vector<std::vector<DataCursor *>> cursors(elements.size());
+
+	int w = 0;
+	for (auto & e : elements)
+	{
+		for (auto & p : e.properties)
+		{
+			cursors[w].push_back(userDataTable[make_key(e.name, p.name)]);
+		}
+		w++;
+	}
+
+    for (size_t el = 0; el < elements.size(); el++)
     {
+		const PlyElement & e = elements[el];
+
+		//PLY_SCOPED_TIMER("element");
         for (size_t i = 0; i < e.size; ++i)
         {
-            for (auto & p : e.properties)
+			//PLY_SCOPED_TIMER("iterate");
+
+            for (size_t props = 0; props < e.properties.size(); props++)
             {
-                auto & cursor = userDataTable[make_key(e.name, p.name)];
+				const PlyProperty & p = e.properties[props];
+
+				//PLY_SCOPED_TIMER("property");
+				{
+					//PLY_SCOPED_TIMER("get cursor");
+					cursor = userDataTable[make_key(e.name, p.name)];
+					//std::cout << make_key("vertex", "x") << std::endl;
+				}
                 if (p.isList)
                 {
                     uint8_t listSize[4] = {0, 0, 0, 0};
@@ -234,6 +260,7 @@ void PlyFile::write_binary_internal(std::ostream & os)
                 }
                 else
                 {
+					//PLY_SCOPED_TIMER("write");
                     write_property_binary(p.propertyType, os, (cursor->data + cursor->offset), cursor->offset);
                 }
             }

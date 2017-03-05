@@ -18,6 +18,20 @@
 #include <memory>
 #include <functional>
 #include <cstring>
+#include <chrono>
+
+class scoped_timer
+{
+	std::string message;
+	std::chrono::high_resolution_clock::time_point t0;
+public:
+	scoped_timer(std::string message) : message{ std::move(message) }, t0{ std::chrono::high_resolution_clock::now() } {}
+	~scoped_timer()
+	{
+		std::cout << message << " completed in " << std::to_string((std::chrono::duration<float>(std::chrono::high_resolution_clock::now() - t0).count() * 1000)) << " ms" << std::endl;
+	}
+};
+#define PLY_SCOPED_TIMER(MESSAGE) scoped_timer scoped_timer_ ## __LINE__(MESSAGE)
 
 namespace tinyply
 {
@@ -68,6 +82,7 @@ namespace tinyply
 			FLOAT64
 		};
 
+		PlyProperty() {};
 		PlyProperty(std::istream & is);
 		PlyProperty(Type type, const std::string & name) : propertyType(type), isList(false), name(name) {}
 		PlyProperty(Type list_type, Type prop_type, const std::string & name, int listCount) : listType(list_type), propertyType(prop_type), isList(true), name(name), listCount(listCount) {}
@@ -184,6 +199,7 @@ namespace tinyply
 	{
 		void parse_internal(std::istream & is);
 	public:
+		PlyElement() {};
 		PlyElement(std::istream & istream);
 		PlyElement(const std::string & name, size_t count) : name(name), size(count) {}
 		std::string name;
@@ -281,7 +297,7 @@ namespace tinyply
 			if (!propertyKeys.size()) return 0;
 
 			// All requested properties in the userDataTable share the same cursor (thrown into the same flat array)
-			auto cursor = std::make_shared<DataCursor>();
+			auto cursor = new DataCursor();
 
 			std::vector<size_t> instanceCounts;
 
@@ -315,7 +331,7 @@ namespace tinyply
 		template<typename T>
 		void add_properties_to_element(const std::string & elementKey, const std::vector<std::string> & propertyKeys, std::vector<T> & source, const int listCount = 1, const PlyProperty::Type listType = PlyProperty::Type::INVALID)
 		{
-			auto cursor = std::make_shared<DataCursor>();
+			auto cursor = new DataCursor();
 			cursor->offset = 0;
 			cursor->vector = &source;
 			cursor->data = reinterpret_cast<uint8_t *>(source.data());
@@ -326,7 +342,7 @@ namespace tinyply
 				{
 					PlyProperty::Type t = property_type_for_type(source);
 					PlyProperty newProp = (listType == PlyProperty::Type::INVALID) ? PlyProperty(t, key) : PlyProperty(listType, t, key, listCount);
-					userDataTable.insert(std::pair<std::string, std::shared_ptr<DataCursor>>(make_key(e.name, key), cursor));
+					userDataTable.insert(std::pair<std::string, DataCursor *>(make_key(e.name, key), cursor));
 					e.properties.push_back(newProp);
 				}
 			};
@@ -353,7 +369,7 @@ namespace tinyply
 		void read_property_binary(PlyProperty::Type t, void * dest, size_t & destOffset, std::istream & is);
 		void read_property_ascii(PlyProperty::Type t, void * dest, size_t & destOffset, std::istream & is);
 		void write_property_ascii(PlyProperty::Type t, std::ostream & os, uint8_t * src, size_t & srcOffset);
-		void write_property_binary(PlyProperty::Type t, std::ostream & os, uint8_t * src, size_t & srcOffset);
+		void write_property_binary(const PlyProperty::Type & t, std::ostream & os, uint8_t * src, size_t & srcOffset);
 
 		bool parse_header(std::istream & is);
 		void write_header(std::ostream & os);
@@ -371,7 +387,7 @@ namespace tinyply
 		bool isBinary = false;
 		bool isBigEndian = false;
 
-		std::map<std::string, std::shared_ptr<DataCursor>> userDataTable;
+		std::map<std::string, DataCursor *> userDataTable;
 
 		std::vector<PlyElement> elements;
 		std::vector<std::string> requestedElements;
