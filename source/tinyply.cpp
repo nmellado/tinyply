@@ -55,7 +55,7 @@ PlyFile::PlyFile(std::istream & is)
 {
     if (!parse_header(is))
     {
-        throw std::runtime_error("file is not ply or encounted junk in header");
+        std::cerr << "file is not ply or encounted junk in header" << std::endl;
     }
 }
 
@@ -93,8 +93,8 @@ void PlyFile::read_header_format(std::istream & is)
 {
     std::string s;
     (is >> s);
-	if (s == "binary_little_endian") isBinary = true;
-	else if (s == "binary_big_endian") isBinary = isBigEndian = true;
+    if (s == "binary_little_endian") isBinary = true;
+    else if (s == "binary_big_endian") isBinary = isBigEndian = true;
 }
 
 void PlyFile::read_header_element(std::istream & is)
@@ -112,8 +112,8 @@ size_t PlyFile::skip_property_binary(const PlyProperty & property, std::istream 
     static std::vector<char> skip(PropertyTable[property.propertyType].stride);
     if (property.isList)
     {
-		size_t listSize = 0;
-		size_t dummyCount = 0;
+        size_t listSize = 0;
+        size_t dummyCount = 0;
         read_property_binary(property.listType, &listSize, dummyCount, is);
         for (size_t i = 0; i < listSize; ++i) is.read(skip.data(), PropertyTable[property.propertyType].stride);
         return listSize;
@@ -152,7 +152,8 @@ void PlyFile::read_property_binary(PlyProperty::Type t, void * dest, size_t & de
         case PlyProperty::Type::UINT32:     ply_cast<uint32_t>(dest, src.data(), isBigEndian);      break;
         case PlyProperty::Type::FLOAT32:    ply_cast_float<float>(dest, src.data(), isBigEndian);   break;
         case PlyProperty::Type::FLOAT64:    ply_cast_double<double>(dest, src.data(), isBigEndian); break;
-        case PlyProperty::Type::INVALID:    throw std::invalid_argument("invalid ply property");
+        case PlyProperty::Type::INVALID:
+        default:                            break;
     }
     destOffset += PropertyTable[t].stride;
 }
@@ -169,7 +170,8 @@ void PlyFile::read_property_ascii(PlyProperty::Type t, void * dest, size_t & des
         case PlyProperty::Type::UINT32:     ply_cast_ascii<uint32_t>(dest, is);                     break;
         case PlyProperty::Type::FLOAT32:    ply_cast_ascii<float>(dest, is);                        break;
         case PlyProperty::Type::FLOAT64:    ply_cast_ascii<double>(dest, is);                       break;
-        case PlyProperty::Type::INVALID:    throw std::invalid_argument("invalid ply property");
+        case PlyProperty::Type::INVALID:
+        default:                            break;
     }
     destOffset += PropertyTable[t].stride;
 }
@@ -186,7 +188,8 @@ void PlyFile::write_property_ascii(PlyProperty::Type t, std::ostream & os, uint8
         case PlyProperty::Type::UINT32:     os << *reinterpret_cast<uint32_t*>(src);    break;
         case PlyProperty::Type::FLOAT32:    os << *reinterpret_cast<float*>(src);       break;
         case PlyProperty::Type::FLOAT64:    os << *reinterpret_cast<double*>(src);      break;
-        case PlyProperty::Type::INVALID:    throw std::invalid_argument("invalid ply property");
+        case PlyProperty::Type::INVALID:
+        default:                            break;
     }
     os << " ";
     srcOffset += PropertyTable[t].stride;
@@ -225,7 +228,7 @@ void PlyFile::write_binary_internal(std::ostream & os)
                 {
                     uint8_t listSize[4] = {0, 0, 0, 0};
                     memcpy(listSize, &p.listCount, sizeof(uint32_t));
-					size_t dummyCount = 0;
+                    size_t dummyCount = 0;
                     write_property_binary(p.listType, os, listSize, dummyCount);
                     for (int j = 0; j < p.listCount; ++j)
                     {
@@ -244,7 +247,7 @@ void PlyFile::write_binary_internal(std::ostream & os)
 void PlyFile::write_ascii_internal(std::ostream & os)
 {
     write_header(os);
-    
+
     for (auto & e : elements)
     {
         for (size_t i = 0; i < e.size; ++i)
@@ -274,16 +277,16 @@ void PlyFile::write_header(std::ostream & os)
 {
     const std::locale & fixLoc = std::locale("C");
     os.imbue(fixLoc);
-    
+
     os << "ply" << std::endl;
     if (isBinary)
         os << ((isBigEndian) ? "format binary_big_endian 1.0" : "format binary_little_endian 1.0") << std::endl;
     else
         os << "format ascii 1.0" << std::endl;
-    
+
     for (const auto & comment : comments)
         os << "comment " << comment << std::endl;
-    
+
     for (auto & e : elements)
     {
         os << "element " << e.name << " " << e.size << std::endl;
@@ -317,7 +320,7 @@ void PlyFile::read_internal(std::istream & is)
         read = [&](PlyProperty::Type t, void * dest, size_t & destOffset, std::istream & is) { read_property_ascii(t, dest, destOffset, is); };
         skip = [&](const PlyProperty & property, std::istream & is) { skip_property_ascii(property, is); };
     }
-    
+
     for (auto & element : get_elements())
     {
         if (std::find(requestedElements.begin(), requestedElements.end(), element.name) != requestedElements.end())
@@ -330,8 +333,8 @@ void PlyFile::read_internal(std::istream & is)
                     {
                         if (property.isList)
                         {
-							size_t listSize = 0;
-							size_t dummyCount = 0;
+                            size_t listSize = 0;
+                            size_t dummyCount = 0;
                             read(property.listType, &listSize, dummyCount, is);
                             if (cursor->realloc == false)
                             {
