@@ -224,14 +224,14 @@ namespace tinyply
                 size_t request_properties_from_element(const std::string & elementKey, std::vector<std::string> propertyKeys, std::vector<T> & source, const int listCount = 1)
                 {
                         if (get_elements().size() == 0)
-                                return 0;
+			  return size_t(0);
 
                         if (find_element(elementKey, get_elements()) >= 0)
                         {
                                 if (std::find(requestedElements.begin(), requestedElements.end(), elementKey) == requestedElements.end())
                                         requestedElements.push_back(elementKey);
                         }
-                        else return 0;
+                        else return size_t(0);
 
                         // count and verify large enough
                         auto instance_counter = [&](const std::string & elementKey, const std::string & propertyKey)
@@ -244,7 +244,7 @@ namespace tinyply
                                                 if (p.name == propertyKey)
                                                 {
                                                         if (PropertyTable[property_type_for_type(source)].stride != PropertyTable[p.propertyType].stride)
-							  return 0;//throw std::runtime_error("destination vector is wrongly typed to hold this property");
+							  return size_t(0);//throw std::runtime_error("destination vector is wrongly typed to hold this property");
                                                         return e.size;
 
                                                 }
@@ -279,7 +279,7 @@ namespace tinyply
                         {
                                 propertyKeys.erase(std::remove(propertyKeys.begin(), propertyKeys.end(), k), propertyKeys.end());
                         }
-                        if (!propertyKeys.size()) return 0;
+                        if (!propertyKeys.size()) return size_t(0);
 
                         // All requested properties in the userDataTable share the same cursor (thrown into the same flat array)
                         auto cursor = std::make_shared<DataCursor>();
@@ -293,7 +293,7 @@ namespace tinyply
                                         instanceCounts.push_back(instanceCount);
                                         auto result = userDataTable.insert(std::pair<std::string, std::shared_ptr<DataCursor>>(make_key(elementKey, key), cursor));
                                         if (result.second == false)
-					  return 0; //throw std::invalid_argument("property has already been requested: " + key);
+					  return size_t(0); //throw std::invalid_argument("property has already been requested: " + key);
                                 }
                                 else continue;
                         }
