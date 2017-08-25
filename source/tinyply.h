@@ -244,7 +244,7 @@ namespace tinyply
                                                 if (p.name == propertyKey)
                                                 {
                                                         if (PropertyTable[property_type_for_type(source)].stride != PropertyTable[p.propertyType].stride)
-                                                                throw std::runtime_error("destination vector is wrongly typed to hold this property");
+							  return 0;//throw std::runtime_error("destination vector is wrongly typed to hold this property");
                                                         return e.size;
 
                                                 }
@@ -293,7 +293,7 @@ namespace tinyply
                                         instanceCounts.push_back(instanceCount);
                                         auto result = userDataTable.insert(std::pair<std::string, std::shared_ptr<DataCursor>>(make_key(elementKey, key), cursor));
                                         if (result.second == false)
-                                                throw std::invalid_argument("property has already been requested: " + key);
+					  return 0; //throw std::invalid_argument("property has already been requested: " + key);
                                 }
                                 else continue;
                         }
