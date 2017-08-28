@@ -74,8 +74,8 @@ namespace tinyply
 
                 Type listType, propertyType;
                 bool isList;
-                int listCount = 0;
                 std::string name;
+                int listCount = 0;
         };
 
         inline std::string make_key(const std::string & a, const std::string & b)
